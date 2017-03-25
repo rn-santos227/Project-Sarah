@@ -6,15 +6,22 @@ import java.awt.image.BufferStrategy;
 import com.project.Doeville.display.Display;
 import com.project.Doeville.gfx.Assets;
 import com.project.Doeville.gfx.Backgrounds;
-import com.project.Doeville.gfx.Buttons;
+import com.project.Doeville.gfx.Components;
 import com.project.Doeville.gfx.GameCamera;
 import com.project.Doeville.gfx.ItemAssets;
+import com.project.Doeville.gfx.LoadingScreen;
+import com.project.Doeville.gfx.NPCSprites;
+import com.project.Doeville.gfx.PlayerSprites;
 import com.project.Doeville.gfx.Transition;
 import com.project.Doeville.input.KeyManager;
+import com.project.Doeville.music.BGM;
 import com.project.Doeville.music.Playlist;
+import com.project.Doeville.saves.Save;
 import com.project.Doeville.sounds.SoundEffect;
 import com.project.Doeville.states.GameState;
+import com.project.Doeville.states.LoadState;
 import com.project.Doeville.states.MenuState;
+import com.project.Doeville.states.SaveState;
 import com.project.Doeville.states.SettingState;
 import com.project.Doeville.states.State;
 import com.project.Doeville.utils.FontFactory;
@@ -27,16 +34,22 @@ public class Game implements Runnable {
 	private boolean running = false;
 	private Thread thread;
 	private BufferStrategy bs;
-	private Graphics g; 
+	private Graphics g;
 	
 	private State gameState;
 	private State menuState;
+	private State saveState;
+	private State loadState;
 	private State settingState;
 	
 	private Handler handler;
 	private KeyManager keyManager;
 	private GameCamera gameCamera;
 	private Transition tran;
+	private LoadingScreen loadingScreen;
+	private Save save;
+	
+	private int normal;
 	
 	public Game(String title, int width, int height) {
 		this.width = width;
@@ -47,23 +60,33 @@ public class Game implements Runnable {
 	
 	private void init() {
 		handler = new Handler(this);
-		tran = new Transition(handler);
 		display = new Display(title, width, height);
 		display.getFrame().addKeyListener(keyManager);;		
 		Assets.init();
 		Backgrounds.init();
-		Buttons.init();
+		Components.init();
+		PlayerSprites.init();
+		NPCSprites.init();
 		ItemAssets.init();
 		Playlist.init();
-		SoundEffect.init();
+		
+		
+		SoundEffect.init();		
 		SoundEffect.volume = SoundEffect.Volume.MEDIUM;
+		tran = new Transition(handler);
+		loadingScreen = new LoadingScreen(handler);
 		handler.setFF(new FontFactory());
 		
 		gameCamera = new GameCamera(handler, 0, 0);	
-		gameState = new GameState(handler, tran);
-		menuState = new MenuState(handler, tran);
+		
+		saveState = new SaveState(handler, loadingScreen, tran);
+		loadState = new LoadState(handler, loadingScreen, tran);
 		settingState = new SettingState(handler, tran);
-		State.setState(gameState);
+		gameState = new GameState(handler, loadingScreen, tran, save);
+		menuState = new MenuState(handler, loadingScreen, tran, saveState, save);
+
+
+		State.setState(menuState);
 	}
 	
 	private void tick() {
@@ -113,6 +136,7 @@ public class Game implements Runnable {
 			
 			if(timer >= 1000000000){
 				System.out.println("FPS: " + frames);
+				normal = frames;
 				frames = 0;
 				timer = 0;
 			}
@@ -154,9 +178,20 @@ public class Game implements Runnable {
 		return menuState;
 	}
 
+	public State getSaveState() {
+		return saveState;
+	}
+
+	public State getLoadState() {
+		return loadState;
+	}
+
 	public State getSettingState() {
 		return settingState;
 	}
 	
+	public int getNormal() {
+		return normal;
+	}
 
 }
